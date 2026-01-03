@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Referee System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+
+        /* Markdown Styles within Chat */
+        .prose pre {
+            background-color: #111;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            overflow-x: auto;
+            border: 1px solid #333;
+        }
+        .prose code {
+            color: #e5e7eb;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.875em;
+        }
+        .prose p { margin-bottom: 0.75em; }
+        .prose p:last-child { margin-bottom: 0; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75em; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75em; }
+        .prose h1, .prose h2, .prose h3 { color: #fff; font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; }
+
+        /* Loading Animation */
+        .dot-flashing {
+            position: relative;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #9CA3AF;
+            color: #9CA3AF;
+            animation: dot-flashing 1s infinite linear alternate;
+            animation-delay: 0.5s;
+        }
+        .dot-flashing::before, .dot-flashing::after {
+            content: "";
+            display: inline-block;
+            position: absolute;
+            top: 0;
+        }
+        .dot-flashing::before {
+            left: -10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #9CA3AF;
+            color: #9CA3AF;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 0s;
+        }
+        .dot-flashing::after {
+            left: 10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #9CA3AF;
+            color: #9CA3AF;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 1s;
+        }
+        @keyframes dot-flashing {
+            0% { background-color: #9CA3AF; }
+            50%, 100% { background-color: #4B5563; }
+        }
+
+        /* Agent Step Styles */
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+    </style>
+</head>
+<!-- UPDATED: Changed h-screen to h-[100dvh] for better mobile viewport handling -->
+<body class="bg-[#131314] text-gray-100 font-sans h-[100dvh] flex overflow-hidden selection:bg-orange-500 selection:text-white">
+
+    <!-- Sidebar -->
+    <div class="hidden md:flex flex-col w-[280px] bg-[#1E1F20] border-r border-gray-800 h-full p-4">
+        <div class="flex items-center gap-2 px-2 py-3 mb-6">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-900/20">
+                <i class="ph ph-gavel text-white text-lg"></i>
+            </div>
+            <span class="font-semibold text-lg tracking-tight text-gray-100">Referee System</span>
+        </div>
+
+        <button onclick="clearChat()" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-[#282A2C] hover:bg-[#37393B] transition-all text-sm text-gray-200 mb-6 border border-gray-700/50 shadow-sm group">
+            <i class="ph ph-plus text-lg text-gray-400 group-hover:text-white transition-colors"></i>
+            New Investigation
+        </button>
+
+        <div class="flex-1 overflow-y-auto space-y-2">
+            <div class="px-2 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Agent Stats</div>
+            
+            <!-- Status Indicators -->
+            <div class="px-3 py-2 rounded-lg bg-[#131314]/50 border border-gray-800">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs text-gray-400">Primary Solver</span>
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                </div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs text-gray-400">Logic Critic</span>
+                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                </div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs text-gray-400">Domain Expert</span>
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-400">Referee</span>
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-auto border-t border-gray-800 pt-4">
+            <button class="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-[#282A2C] text-sm text-gray-300 transition-colors">
+                <i class="ph ph-sliders text-lg"></i>
+                System Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col h-full relative bg-[#131314]">
+        
+        <!-- Mobile Header -->
+        <div class="md:hidden flex items-center justify-between p-4 border-b border-gray-800 bg-[#1E1F20]">
+            <span class="font-semibold flex items-center gap-2">
+                <i class="ph ph-gavel text-orange-500"></i> Referee Agent
+            </span>
+            <button onclick="clearChat()" class="p-2 text-gray-400 hover:text-white">
+                <i class="ph ph-plus"></i>
+            </button>
+        </div>
+
+        <!-- Messages Container -->
+        <!-- UPDATED: Adjusted padding to pb-64 which is sufficient given the new pointer-events fix -->
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scroll-smooth pb-[50vh]">
+            <!-- Welcome Message -->
+            <div class="flex flex-col items-center justify-center h-full text-center space-y-6" id="welcome-screen">
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-orange-600 to-red-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div class="relative w-20 h-20 rounded-full bg-[#1E1F20] border border-gray-700 flex items-center justify-center">
+                        <i class="ph ph-brain text-4xl text-gray-200"></i>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-400">Agent Referee System</h1>
+                    <p class="text-gray-500 max-w-md mx-auto">Submit a complex problem. The multi-agent swarm will solve, critique, and refine it until the Referee approves.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg mt-8">
+                    <button onclick="setInput('Explain quantum entanglement like I am 5')" class="p-4 rounded-xl bg-[#1E1F20] border border-gray-800 hover:border-gray-600 hover:bg-[#252628] text-left transition-all group">
+                        <div class="text-sm font-medium text-gray-300 group-hover:text-white mb-1">Quantum Physics</div>
+                        <div class="text-xs text-gray-500">Explain entanglement simply</div>
+                    </button>
+                    <button onclick="setInput('Write a Python script to optimize a delivery route')" class="p-4 rounded-xl bg-[#1E1F20] border border-gray-800 hover:border-gray-600 hover:bg-[#252628] text-left transition-all group">
+                        <div class="text-sm font-medium text-gray-300 group-hover:text-white mb-1">Code Generation</div>
+                        <div class="text-xs text-gray-500">Python delivery optimizer</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <!-- UPDATED: Added pointer-events-none to the wrapper so clicks pass through the gradient -->
+        <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-[#131314] via-[#131314] to-transparent pt-10 pb-6 px-4 z-10 pointer-events-none">
+            <!-- UPDATED: Added pointer-events-auto to the inner container so the input itself is still clickable -->
+            <div class="max-w-4xl mx-auto pointer-events-auto">
+                <div class="relative flex items-end gap-2 bg-[#1E1F20] rounded-2xl p-2 border border-gray-700/50 shadow-2xl shadow-black/50 ring-1 ring-white/5 focus-within:ring-orange-500/50 transition-all">
+                    
+                    <button class="p-3 text-gray-400 hover:text-orange-400 rounded-xl hover:bg-gray-800 transition-colors hidden sm:block" title="Upload Context (Not implemented)">
+                        <i class="ph ph-paperclip text-xl"></i>
+                    </button>
+
+                    <textarea 
+                        id="user-input" 
+                        rows="1" 
+                        class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-base p-3 focus:outline-none resize-none max-h-48 overflow-y-auto font-medium"
+                        placeholder="Describe your task for the agents..."
+                        oninput="adjustHeight(this)"
+                        onkeydown="handleEnter(event)"
+                    ></textarea>
+
+                    <button 
+                        id="send-btn"
+                        onclick="sendMessage()" 
+                        class="p-3 bg-gray-100 text-black rounded-xl hover:bg-white hover:shadow-lg hover:shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                        <i class="ph ph-arrow-up text-lg font-bold"></i>
+                    </button>
+                </div>
+                <p class="text-center text-xs text-gray-600 mt-3 font-medium">
+                    Powered by Ollama (Agents) & Gemini (Referee)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_URL = 'http://10.224.148.61:8000/run';
+
+        // --- DOM ELEMENTS ---
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const welcomeScreen = document.getElementById('welcome-screen');
+
+        let isWelcomeVisible = true;
+
+        // --- MARKED CONFIG ---
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true
+        });
+
+        // --- FUNCTIONS ---
+
+        function setInput(text) {
+            userInput.value = text;
+            adjustHeight(userInput);
+            userInput.focus();
+        }
+
+        function adjustHeight(el) {
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+            if (el.value === '') el.style.height = 'auto';
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function clearChat() {
+            chatContainer.innerHTML = '';
+            chatContainer.appendChild(welcomeScreen);
+            welcomeScreen.style.display = 'flex';
+            isWelcomeVisible = true;
+            userInput.value = '';
+            adjustHeight(userInput);
+        }
+
+        function createAgentHistoryHTML(history) {
+            if (!history || history.length === 0) return '';
+
+            let historyHTML = `
+                <details class="group mt-4 bg-[#18191A] rounded-lg border border-gray-800 overflow-hidden">
+                    <summary class="flex items-center justify-between p-3 cursor-pointer hover:bg-[#202122] transition-colors select-none">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            <i class="ph ph-git-branch text-orange-500 text-lg"></i>
+                            Agent Workflow Trace (${history.length} steps)
+                        </div>
+                        <i class="ph ph-caret-down text-gray-500 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="p-0 border-t border-gray-800">
+            `;
+
+            history.forEach((step, index) => {
+                const isReferee = step.step === 'referee';
+                const agentName = step.agent.replace('_', ' ');
+                const borderColor = isReferee ? 'border-l-red-500' : 'border-l-blue-500';
+                const icon = isReferee ? 'ph-gavel' : 'ph-robot';
+                
+                let content = '';
+                if (isReferee) {
+                    const verdictColor = step.verdict === 'VALID' ? 'text-green-400' : 'text-red-400';
+                    content = `
+                        <div class="mb-2">
+                            <span class="text-xs text-gray-500">Verdict:</span> 
+                            <span class="font-bold ${verdictColor}">${step.verdict}</span>
+                        </div>
+                        <div class="text-gray-300 text-sm italic">"${step.reason}"</div>
+                    `;
+                } else {
+                    // Truncate long agent responses in the summary view
+                    const preview = step.response.length > 200 ? step.response.substring(0, 200) + '...' : step.response;
+                    content = `<div class="text-gray-400 text-sm font-mono whitespace-pre-wrap">${preview}</div>`;
+                }
+
+                historyHTML += `
+                    <div class="p-4 border-b border-gray-800/50 last:border-0 hover:bg-[#1E1F20] transition-colors">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-bold text-gray-300 bg-[#2A2B2D] px-2 py-1 rounded border border-gray-700">${agentName}</span>
+                            <span class="text-[10px] text-gray-600">Step ${index + 1}</span>
+                        </div>
+                        <div class="pl-2 border-l-2 ${borderColor}">
+                            ${content}
+                        </div>
+                    </div>
+                `;
+            });
+
+            historyHTML += `
+                    </div>
+                </details>
+            `;
+            return historyHTML;
+        }
+
+        function createMessageElement(content, role, history = []) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`;
+
+            const avatar = role === 'assistant' 
+                ? `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 border border-gray-700 flex-shrink-0 flex items-center justify-center mr-4 mt-1 shadow-md">
+                     <i class="ph ph-lightning text-orange-500 text-base"></i>
+                   </div>` 
+                : '';
+
+            if (role === 'user') {
+                wrapper.innerHTML = `
+                    <div class="bg-[#2f2f2f] text-gray-100 rounded-2xl rounded-tr-sm px-5 py-3 max-w-[85%] md:max-w-[70%] text-base leading-relaxed shadow-sm border border-gray-700/50">
+                        ${escapeHtml(content)}
+                    </div>
+                `;
+            } else {
+                const parsedContent = marked.parse(content);
+                const historyBlock = createAgentHistoryHTML(history);
+                
+                wrapper.innerHTML = `
+                    <div class="flex max-w-[95%] md:max-w-[85%]">
+                        ${avatar}
+                        <div class="flex flex-col w-full">
+                            <div class="prose prose-invert max-w-none text-gray-200 leading-relaxed bg-[#1E1F20]/50 p-1 rounded-lg">
+                                ${parsedContent}
+                            </div>
+                            ${historyBlock}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return wrapper;
+        }
+
+        function showLoading() {
+            const wrapper = document.createElement('div');
+            wrapper.id = 'loading-indicator';
+            wrapper.className = 'flex w-full justify-start mt-4';
+            wrapper.innerHTML = `
+                <div class="flex max-w-[80%]">
+                    <div class="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex-shrink-0 flex items-center justify-center mr-4">
+                        <i class="ph ph-gear-six animate-spin text-gray-500"></i>
+                    </div>
+                    <div class="flex items-center h-8 gap-2">
+                        <span class="text-sm text-gray-500 font-medium">Agents working</span>
+                        <div class="dot-flashing"></div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(wrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) loading.remove();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            if (isWelcomeVisible) {
+                welcomeScreen.style.display = 'none';
+                isWelcomeVisible = false;
+            }
+
+            // 1. User Message
+            chatContainer.appendChild(createMessageElement(text, 'user'));
+            userInput.value = '';
+            adjustHeight(userInput);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 2. Loading
+            showLoading();
+            sendBtn.disabled = true;
+
+            try {
+                // 3. Call FastAPI Backend
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        query: text,
+                        max_retries: 2
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // 4. Render Response
+                removeLoading();
+                
+                const finalResponse = data.final_response || "Process completed, but no final text was returned.";
+                const history = data.history || [];
+
+                chatContainer.appendChild(createMessageElement(finalResponse, 'assistant', history));
+
+            } catch (error) {
+                console.error('Error:', error);
+                removeLoading();
+                const errorMsg = `**Connection Error:** Could not reach the Agent Backend.\n\nEnsure \`uvicorn main:app --reload\` is running and CORS is enabled in \`main.py\`.`;
+                chatContainer.appendChild(createMessageElement(errorMsg, 'assistant'));
+            } finally {
+                sendBtn.disabled = false;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                hljs.highlightAll();
+            }
+        }
+    </script>
+</body>
+</html>
