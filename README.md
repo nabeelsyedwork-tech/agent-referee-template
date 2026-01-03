@@ -4,22 +4,7 @@
 
 <!-- Animated subtitle -->
 <p>
-  <img
-    src="https://readme-typing-svg.demolab.com?
-    font=Inter&
-    weight=600&
-    size=18&
-    duration=3000&
-    pause=800&
-    color=22C55E&
-    center=true&
-    vCenter=true&
-    width=520&
-    lines=Multi-Agent+Reasoning+with+Deterministic+Validation;
-    Generate+%E2%86%92+Critique+%E2%86%92+Verify+%E2%86%92+Approve;
-    Correctness+over+Confidence"
-    alt="Animated description"
-  />
+<img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=18&duration=3000&pause=800&color=22C55E&center=true&vCenter=true&width=520&lines=Multi-Agent+Reasoning+with+Deterministic+Validation;Generate+%E2%86%92+Critique+%E2%86%92+Verify+%E2%86%92+Approve;Correctness+over+Confidence" alt="Animated description" />
 </p>
 
 <!-- Vibrant badges -->
