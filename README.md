@@ -389,8 +389,3 @@ For large changes, please open an issue first.
 * [ ] Multi-user sessions
 * [ ] Authentication & quotas for referee usage
 
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE)
